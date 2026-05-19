@@ -3,95 +3,425 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zombie & Orphan Simulator</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>OS Simulator: Process Control Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --pvz-green: #5c9e31;
+            --pvz-dark-green: #3b6b1d;
+            --pvz-lawn: #70b83b;
+            --pvz-dirt: #6e4726;
+            --pvz-stone: #a3a3a3;
+            --pvz-parchment: #f4edd3;
+        }
+
+        /* PvZ Style Cartoon Typography */
+        .pvz-title { font-family: 'Fredoka One', cursive; text-shadow: 3px 3px 0px #000; }
+        .pvz-heading { font-family: 'Fredoka One', cursive; color: #4a2e16; }
+        
+        body { 
+            background: linear-gradient(to bottom, #7cd137 0%, #4da11c 100%);
+            background-attachment: fixed;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        /* Stone and Soil Boarder Theme */
+        .lawn-border {
+            border: 6px solid var(--pvz-dirt);
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.4), 0 8px 20px rgba(0,0,0,0.4);
+            background-color: var(--pvz-parchment);
+            border-radius: 12px;
+        }
+
+        .lawn-card {
+            background: var(--pvz-parchment);
+            border: 4px solid var(--pvz-dirt);
+            border-radius: 12px;
+            box-shadow: 0 4px 0px var(--pvz-dirt);
+            position: relative;
+        }
+
+        /* Flashing Comic Aura for Zombie Processes */
+        .zombie-pulse {
+            animation: zombieBlink 1.5s infinite ease-in-out;
+        }
+
+        @keyframes zombieBlink {
+            0% { background-color: rgba(163, 163, 163, 0.2); border-color: #7a2b2b; }
+            50% { background-color: rgba(122, 43, 43, 0.4); border-color: #ef4444; }
+            100% { background-color: rgba(163, 163, 163, 0.2); border-color: #7a2b2b; }
+        }
+
+        /* Custom Lawn Grid Background Overlay */
+        .lawn-grid {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+    </style>
 </head>
-<body class="dark-mode">
-    <div class="grid-background"></div>
-    
-    <header class="main-header">
-        <div class="logo">
-            <i class="fas fa-microchip"></i>
-            <h1>Zombie & Orphan <span>Simulator</span></h1>
-        </div>
-        <div class="system-status">
-            <span class="status-indicator active"></span> System Active
-            <span id="global-process-count" class="badge">1 Processes</span>
-        </div>
-    </header>
+<body class="text-gray-800 antialiased min-h-screen lawn-grid">
 
-    <main class="dashboard">
-        <section class="panel tree-panel">
-            <div class="panel-header">
-                <i class="fas fa-sitemap"></i> <h2>Process Tree</h2>
-            </div>
-            <div id="process-tree-container" class="tree-content">
-                </div>
-        </section>
-
-        <section class="panel controls-panel">
-            <div class="panel-header">
-                <i class="fas fa-bolt"></i> <h2>Controls</h2>
-            </div>
+    <div id="interface-login" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+        <div class="lawn-border p-8 max-w-lg w-full text-center relative overflow-hidden">
+            <h1 class="pvz-title text-5xl text-[#eab308] mb-2 uppercase tracking-wide">Kernel Registry</h1>
+            <h2 class="pvz-heading text-2xl mb-6">Process Management Terminal</h2>
             
-            <div class="button-group">
-                <button id="btn-create-parent" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Create Parent
-                </button>
-                <button id="btn-create-child" class="btn btn-secondary">
-                    <i class="fas fa-child"></i> Create Child
-                </button>
-                <hr>
-                <button id="btn-kill-parent" class="btn btn-danger">
-                    <i class="fas fa-skull-crossbones"></i> Kill Parent
-                </button>
-                <button id="btn-kill-child" class="btn btn-warning">
-                    <i class="fas fa-eraser"></i> Kill Child
-                </button>
-                <button id="btn-reap" class="btn btn-accent">
-                    <i class="fas fa-recycle"></i> Wait / Reap Zombie
-                </button>
-                <button id="btn-reset" class="btn btn-ghost">
-                    <i class="fas fa-undo"></i> Reset Simulation
-                </button>
-            </div>
-
-            <div class="settings-box">
-                <h3>SIMULATION SPEED</h3>
-                <div class="range-container">
-                    <span>0.5x</span>
-                    <input type="range" id="speed-slider" min="0.5" max="2" step="0.5" value="1">
-                    <span>2x</span>
+            <form onsubmit="initializeSimulation(event)" class="space-y-4">
+                <div class="text-left">
+                    <label class="block text-xs font-bold uppercase text-amber-900 mb-1 ml-1">Root Identifier</label>
+                    <input type="text" id="loginUser" required value="root_admin" class="w-full bg-white border-3 border-amber-900 p-2 rounded-lg font-bold focus:outline-none focus:ring-4 focus:ring-green-400">
                 </div>
-                <button id="btn-pause" class="btn btn-outline-warning">
-                    <i class="fas fa-pause"></i> Pause
+                <div class="text-left">
+                    <label class="block text-xs font-bold uppercase text-amber-900 mb-1 ml-1">Authentication Hash</label>
+                    <input type="password" id="loginPass" required value="kernel180" class="w-full bg-white border-3 border-amber-900 p-2 rounded-lg font-bold focus:outline-none focus:ring-4 focus:ring-green-400">
+                </div>
+                <button type="submit" class="w-full bg-[#f97316] hover:bg-[#ea580c] text-white pvz-title text-2xl py-3 rounded-xl shadow-lg transition-transform active:scale-95 border-b-6 border-[#b45309]">
+                    Initialize Core
                 </button>
-            </div>
-        </section>
+            </form>
+        </div>
+    </div>
 
-        <section class="panel info-panel">
-            <div class="panel-header">
-                <i class="fas fa-terminal"></i> <h2>Event Log</h2>
-            </div>
-            <div id="event-log" class="terminal-log">
-                <div class="log-entry info">[00:00:00] System Initialized...</div>
-            </div>
+    <div id="interface-logout" class="hidden fixed inset-0 z-50 bg-[#1e293b]/95 flex items-center justify-center p-4">
+        <div class="lawn-border p-8 max-w-md w-full text-center">
+            <div class="text-5xl mb-4">🪦</div>
+            <h2 class="pvz-heading text-4xl mb-4">Session Terminated</h2>
+            <p class="mb-6 font-bold text-amber-950">All simulated process architectures have been deallocated from active memory pools.</p>
+            <button onclick="returnToLogin()" class="w-full bg-[#5c9e31] hover:bg-[#3b6b1d] text-white pvz-title text-xl py-2 rounded-xl border-b-4 border-[#244410]">Return to Gateway</button>
+        </div>
+    </div>
 
-            <div class="process-details" id="details-panel">
-                <div class="panel-header">
-                    <i class="fas fa-info-circle"></i> <h2>Selected Process</h2>
+    <div id="mainLayout" class="hidden min-h-screen flex flex-col">
+        <header class="bg-[#5c9e31] border-b-6 border-[#3b6b1d] px-6 py-3 flex justify-between items-center shadow-2xl">
+            <div class="flex items-center space-x-3">
+                <span class="text-3xl">🌱</span>
+                <h1 class="pvz-title text-3xl text-white tracking-wide">OS Simulation Core</h1>
+            </div>
+            <div class="flex items-center space-x-6">
+                <span class="bg-[#3b6b1d] border-2 border-white/40 px-4 py-1 rounded-full text-xs font-bold text-white shadow-inner">SYSTEM REGISTER: ACTIVE</span>
+                <button onclick="logout()" class="bg-[#ef4444] text-white px-4 py-1.5 rounded-lg font-bold hover:bg-[#dc2626] border-b-4 border-[#991b1b] transition">HALT SYSTEM</button>
+            </div>
+        </header>
+
+        <div class="flex flex-1">
+            <aside class="w-64 bg-[#f4edd3] border-r-6 border-[#6e4726] p-4 flex flex-col shadow-xl">
+                <div class="pvz-heading text-xl mb-4 border-b-2 border-amber-900/20 pb-1">Console Options</div>
+                
+                <nav class="space-y-3 flex-1">
+                    <button onclick="switchInterface('dashboard-visualizer')" id="btn-dashboard-visualizer" class="w-full text-left px-4 py-2.5 rounded-xl font-bold text-sm bg-[#6e4726] text-white shadow-md">Lineage Dashboard</button>
+                    <button onclick="switchInterface('monitor')" id="btn-monitor" class="w-full text-left px-4 py-2.5 rounded-xl font-bold text-sm text-[#4a2e16] hover:bg-black/5 transition">State Monitor</button>
+                    <button onclick="switchInterface('analytics')" id="btn-analytics" class="w-full text-left px-4 py-2.5 rounded-xl font-bold text-sm text-[#4a2e16] hover:bg-black/5 transition">Performance Metrics</button>
+                </nav>
+
+                <div class="pt-6 mt-6 border-t-2 border-amber-900/20 space-y-3">
+                    <button onclick="createParentProcess()" class="w-full bg-[#22c55e] text-white font-bold py-3 rounded-xl shadow-md hover:bg-[#16a34a] border-b-4 border-[#15803d] uppercase text-xs tracking-wider">Create Parent Process</button>
+                    <button onclick="reapZombies()" class="w-full bg-[#a3a3a3] text-stone-900 font-bold py-3 rounded-xl shadow-md hover:bg-[#858585] border-b-4 border-[#525252] uppercase text-xs tracking-wider">Reap Zombie Processes</button>
+                    <button onclick="resetSimulation()" class="w-full bg-amber-200 text-amber-900 font-bold py-1.5 rounded-lg text-xs opacity-80 hover:opacity-100 transition">Reset Registry</button>
                 </div>
-                <div class="details-grid">
-                    <label>Name:</label> <span id="detail-name">-</span>
-                    <label>PID:</label> <span id="detail-pid">-</span>
-                    <label>State:</label> <span id="detail-state">-</span>
-                    <label>Parent PID:</label> <span id="detail-ppid">-</span>
-                </div>
-            </div>
-        </section>
-    </main>
+            </aside>
 
-    <script src="script.js"></script>
+            <main class="flex-1 p-6 overflow-y-auto">
+                
+                <div id="interface-dashboard-visualizer" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="lawn-card p-4">
+                            <label class="block text-[10px] font-bold text-amber-950 uppercase mb-2 tracking-wider">Fork Child Process</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="dashboardParentPid" placeholder="Parent PID" class="w-full border-3 border-amber-950 p-2 rounded-lg text-sm focus:outline-none bg-white font-bold">
+                                <button onclick="forkFromDashboard()" class="bg-[#eab308] text-amber-950 font-bold px-5 py-2 rounded-lg border-b-4 border-amber-700 active:translate-y-0.5 transition-all">FORK</button>
+                            </div>
+                        </div>
+                        <div class="lawn-card p-4 bg-sky-100 border-sky-700 shadow-[0_4px_0px_#0369a1]">
+                            <span class="text-[10px] font-bold text-sky-800 uppercase block tracking-wider">CPU Utilization</span>
+                            <span id="dashCpuText" class="pvz-heading text-4xl text-sky-600">0%</span>
+                        </div>
+                        <div class="lawn-card p-4 bg-green-100 border-green-700 shadow-[0_4px_0px_#15803d]">
+                            <span class="text-[10px] font-bold text-green-800 uppercase block tracking-wider">Total Active Processes</span>
+                            <span id="dashTotalCount" class="pvz-heading text-4xl text-green-600">0</span>
+                        </div>
+                    </div>
+
+                    <div class="lawn-card p-5">
+                        <h3 class="pvz-heading text-xl mb-4 border-b border-amber-900/10 pb-1">Hierarchical Process Tree Visualizer</h3>
+                        <div id="treeGraphicMap" class="bg-white/40 border-2 border-dashed border-amber-900/30 p-6 min-h-[180px] flex flex-wrap gap-6 items-center rounded-xl"></div>
+                    </div>
+
+                    <div class="lawn-card overflow-hidden">
+                        <div class="px-4 py-3 bg-[#6e4726] text-white pvz-heading text-lg tracking-wider !color-white shadow-inner" style="color: white;">Process Status Table</div>
+                        <table class="w-full text-left bg-white/60">
+                            <thead>
+                                <tr class="bg-[#e6ddbe] text-amber-950 uppercase text-[10px] font-bold border-b-3 border-[#6e4726]">
+                                    <th class="py-3 px-5">PID</th>
+                                    <th class="py-3 px-5">PPID (Parent)</th>
+                                    <th class="py-3 px-5">Identifier Name</th>
+                                    <th class="py-3 px-5">Process State</th>
+                                    <th class="py-3 px-5 text-right">Action Mandate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboardTableBody" class="font-semibold text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="interface-monitor" class="hidden space-y-6">
+                    <h2 class="pvz-title text-4xl text-white tracking-wide">Irregular Process Flag Matrix</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="lawn-card p-5 border-stone-500 shadow-[0_4px_0px_#525252]">
+                            <div class="flex justify-between items-center border-b-2 border-stone-300 pb-2 mb-4">
+                                <h3 class="pvz-heading text-xl text-stone-700">Zombie Processes ([Defunct])</h3>
+                                <span id="monitorZombieCount" class="bg-stone-600 text-white px-3 py-1 rounded-full text-xs font-bold">0</span>
+                            </div>
+                            <ul id="zombieLogList" class="space-y-2 text-xs text-stone-800 font-bold bg-stone-200/50 p-3 rounded-lg border border-stone-300"></ul>
+                        </div>
+                        <div class="lawn-card p-5 border-sky-400 shadow-[0_4px_0px_#0284c7]">
+                            <div class="flex justify-between items-center border-b-2 border-sky-200 pb-2 mb-4">
+                                <h3 class="pvz-heading text-xl text-sky-700">Orphan Processes (Adopted)</h3>
+                                <span id="monitorOrphanCount" class="bg-sky-600 text-white px-3 py-1 rounded-full text-xs font-bold">0</span>
+                            </div>
+                            <ul id="orphanLogList" class="space-y-2 text-xs text-sky-900 font-bold bg-sky-100/50 p-3 rounded-lg border border-sky-200"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="interface-analytics" class="hidden space-y-6">
+                    <h2 class="pvz-title text-4xl text-white tracking-wide">Runtime Telemetry Data</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="lawn-card p-4">
+                            <span class="text-[10px] font-bold text-amber-900 uppercase block tracking-wider">Cumulative Spawns</span>
+                            <span id="reportTotalSpawns" class="pvz-heading text-3xl">0</span>
+                        </div>
+                        <div class="lawn-card p-4">
+                            <span class="text-[10px] font-bold text-amber-900 uppercase block tracking-wider">Wait Calls Executed</span>
+                            <span id="reportWaitCalls" class="pvz-heading text-3xl">0</span>
+                        </div>
+                        <div class="lawn-card p-4">
+                            <span class="text-[10px] font-bold text-amber-900 uppercase block tracking-wider">RAM Allocation</span>
+                            <span id="reportRamText" class="pvz-heading text-3xl">0%</span>
+                        </div>
+                    </div>
+                    <div class="lawn-card p-5 h-64">
+                        <canvas id="analyticsGraph"></canvas>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script>
+        let simulatedProcesses = {};
+        let nextPidCounter = 2001;
+        let cumulativeSpawns = 0;
+        let cumulativeWaitCalls = 0;
+        let analyticsChart = null;
+
+        function initializeSimulation(event) {
+            event.preventDefault();
+            document.getElementById('interface-login').classList.add('hidden');
+            document.getElementById('mainLayout').classList.remove('hidden');
+            renderAnalyticsGraph();
+            startHardwareEngineTicks();
+            switchInterface('dashboard-visualizer');
+        }
+
+        function logout() {
+            document.getElementById('mainLayout').classList.add('hidden');
+            document.getElementById('interface-logout').classList.remove('hidden');
+        }
+
+        function returnToLogin() {
+            location.reload(); 
+        }
+
+        function switchInterface(targetId) {
+            const tabs = ['dashboard-visualizer', 'monitor', 'analytics'];
+            tabs.forEach(tab => {
+                document.getElementById(`interface-${tab}`).classList.add('hidden');
+                document.getElementById(`btn-${tab}`).className = "w-full text-left px-4 py-2.5 rounded-xl font-bold text-sm text-[#4a2e16] hover:bg-black/5 transition";
+            });
+
+            document.getElementById(`interface-${targetId}`).classList.remove('hidden');
+            document.getElementById(`btn-${targetId}`).className = "w-full text-left px-4 py-2.5 rounded-xl font-bold text-sm bg-[#6e4726] text-white shadow-md";
+            syncUIDisplays();
+        }
+
+        function createParentProcess() {
+            const pid = nextPidCounter++;
+            simulatedProcesses[pid] = { pid, ppid: 1, name: `Parent_Proc_${pid}`, status: 'Running' };
+            cumulativeSpawns++;
+            syncUIDisplays();
+        }
+
+        function forkFromDashboard() {
+            const inputField = document.getElementById('dashboardParentPid');
+            const ppid = parseInt(inputField.value);
+
+            if (!ppid || !simulatedProcesses[ppid] || simulatedProcesses[ppid].status !== 'Running') {
+                alert("Execution Refused: Valid parent PID in 'Running' state required.");
+                return;
+            }
+
+            const pid = nextPidCounter++;
+            simulatedProcesses[pid] = { pid, ppid, name: `Child_Proc_${pid}`, status: 'Running' };
+            cumulativeSpawns++;
+            inputField.value = '';
+            syncUIDisplays();
+        }
+
+        function triggerKill(pid) {
+            const target = simulatedProcesses[pid];
+            if (!target) return;
+
+            if (target.ppid !== 1 && target.status === 'Running') {
+                const parent = simulatedProcesses[target.ppid];
+                if (parent && parent.status === 'Running') {
+                    target.status = 'Zombie';
+                } else {
+                    target.status = 'Orphan';
+                    target.ppid = 1;
+                }
+            } else if (target.status === 'Running' || target.status === 'Orphan') {
+                delete simulatedProcesses[pid];
+                Object.keys(simulatedProcesses).forEach(id => {
+                    if (simulatedProcesses[id].ppid === pid) {
+                        simulatedProcesses[id].ppid = 1;
+                        if (simulatedProcesses[id].status === 'Running') simulatedProcesses[id].status = 'Orphan';
+                    }
+                });
+            } else {
+                delete simulatedProcesses[pid];
+            }
+            syncUIDisplays();
+        }
+
+        function reapZombies() {
+            cumulativeWaitCalls++;
+            Object.keys(simulatedProcesses).forEach(id => {
+                if (simulatedProcesses[id].status === 'Zombie') delete simulatedProcesses[id];
+            });
+            syncUIDisplays();
+        }
+
+        function resetSimulation() {
+            simulatedProcesses = {};
+            nextPidCounter = 2001;
+            syncUIDisplays();
+        }
+
+        function syncUIDisplays() {
+            const processes = Object.values(simulatedProcesses);
+            let zombies = 0; let orphans = 0;
+
+            const dashTable = document.getElementById('dashboardTableBody');
+            const treeContainer = document.getElementById('treeGraphicMap');
+            const zombieLog = document.getElementById('zombieLogList');
+            const orphanLog = document.getElementById('orphanLogList');
+
+            if (dashTable) dashTable.innerHTML = '';
+            if (zombieLog) zombieLog.innerHTML = '';
+            if (orphanLog) orphanLog.innerHTML = '';
+            
+            if (treeContainer) {
+                treeContainer.innerHTML = `
+                    <div class="p-3 bg-white border-4 border-green-700 flex flex-col items-center min-w-[100px] rounded-xl shadow-md">
+                        <span class="text-[9px] text-green-800 font-bold uppercase tracking-widest">init (PID 1)</span>
+                        <span class="pvz-heading text-sm text-green-700">SYSTEM</span>
+                    </div>`;
+            }
+
+            if(processes.length === 0 && dashTable) {
+                dashTable.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-gray-500 font-bold uppercase text-xs tracking-wider">No entries active in process table. Trigger parent process generation.</td></tr>`;
+            }
+
+            processes.forEach(p => {
+                let badge = "bg-green-100 text-green-700 border border-green-300";
+                let nodeClass = "border-amber-900 bg-white text-amber-950 shadow-md";
+
+                if (p.status === 'Zombie') {
+                    zombies++;
+                    badge = "bg-stone-600 text-white font-bold animate-pulse px-2 rounded-md";
+                    nodeClass = "zombie-pulse border-3 shadow-lg rounded-xl text-stone-800";
+                    if (zombieLog) zombieLog.innerHTML += `<li>🪦 [DEFUNCT]: Process ID ${p.pid} entered Zombie state. Sub-routine execution complete.</li>`;
+                } else if (p.status === 'Orphan') {
+                    orphans++;
+                    badge = "bg-sky-100 text-sky-700 border border-sky-400 px-2 rounded-md";
+                    nodeClass = "border-sky-500 bg-sky-50 text-sky-950";
+                    if (orphanLog) orphanLog.innerHTML += `<li>🎈 [ORPHANED]: Process ID ${p.pid} lost parent execution lane. Re-parented to init (1).</li>`;
+                }
+
+                if (dashTable) {
+                    dashTable.innerHTML += `
+                        <tr class="border-b border-amber-900/10 hover:bg-black/5 transition">
+                            <td class="py-3 px-5 text-amber-900">PID: ${p.pid}</td>
+                            <td class="py-3 px-5 text-gray-500">${p.ppid === 1 ? '1 (init)' : p.ppid}</td>
+                            <td class="py-3 px-5">${p.name}</td>
+                            <td class="py-3 px-5"><span class="px-2 py-0.5 text-[10px] uppercase ${badge}">${p.status}</span></td>
+                            <td class="py-3 px-5 text-right">
+                                <button onclick="triggerKill(${p.pid})" class="bg-[#ef4444] text-white px-3 py-1 rounded-md text-[10px] uppercase font-bold hover:bg-[#dc2626] border-b-2 border-[#991b1b] transition">SIGKILL</button>
+                            </td>
+                        </tr>`;
+                }
+
+                if (treeContainer) {
+                    treeContainer.innerHTML += `
+                        <div class="p-3 border-3 relative flex flex-col items-center min-w-[125px] rounded-xl transform hover:scale-105 transition ${nodeClass}">
+                            <span class="text-[9px] font-bold truncate max-w-[110px]">${p.name}</span>
+                            <span class="pvz-heading text-md mt-0.5">${p.pid}</span>
+                            <span class="text-[9px] uppercase font-bold opacity-60">PPID: ${p.ppid}</span>
+                            <span class="absolute -left-4 top-1/2 transform -translate-y-1/2 text-xl">🌱</span>
+                        </div>`;
+                }
+            });
+
+            if(document.getElementById('dashTotalCount')) document.getElementById('dashTotalCount').innerText = processes.length;
+            if(document.getElementById('monitorZombieCount')) document.getElementById('monitorZombieCount').innerText = zombies;
+            if(document.getElementById('monitorOrphanCount')) document.getElementById('monitorOrphanCount').innerText = orphans;
+            if(document.getElementById('reportTotalSpawns')) document.getElementById('reportTotalSpawns').innerText = cumulativeSpawns;
+            if(document.getElementById('reportWaitCalls')) document.getElementById('reportWaitCalls').innerText = cumulativeWaitCalls;
+        }
+
+        function renderAnalyticsGraph() {
+            const canvasEl = document.getElementById('analyticsGraph');
+            if (!canvasEl) return;
+            const ctx = canvasEl.getContext('2d');
+            analyticsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array(10).fill(''),
+                    datasets: [
+                        { label: 'CPU Load Factor', data: Array(10).fill(15), borderColor: '#0284c7', tension: 0.4, borderWidth: 4, pointRadius: 0, fill: true, backgroundColor: 'rgba(2,132,199,0.1)' },
+                        { label: 'RAM Footprint', data: Array(10).fill(45), borderColor: '#ea580c', tension: 0.1, borderWidth: 3, pointRadius: 0 }
+                    ]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false,
+                    scales: { 
+                        x: { display: false }, 
+                        y: { min: 0, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } } 
+                    } 
+                }
+            });
+        }
+
+        function startHardwareEngineTicks() {
+            setInterval(() => {
+                const cpu = Math.floor(Math.random() * (25 - 5 + 1)) + 5;
+                const ram = Math.floor(Math.random() * (55 - 45 + 1)) + 45;
+                if(document.getElementById('dashCpuText')) document.getElementById('dashCpuText').innerText = cpu + "%";
+                if(document.getElementById('reportRamText')) document.getElementById('reportRamText').innerText = ram + "%";
+                if (analyticsChart) {
+                    analyticsChart.data.datasets[0].data.shift();
+                    analyticsChart.data.datasets[0].data.push(cpu);
+                    analyticsChart.data.datasets[1].data.shift();
+                    analyticsChart.data.datasets[1].data.push(ram);
+                    analyticsChart.update();
+                }
+            }, 1000);
+        }
+    </script>
 </body>
 </html>
